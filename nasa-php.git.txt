@@ -1,0 +1,68 @@
+<?php
+	$cardinals = ["N","E","S","W"];
+	function coordinates($str,$facing=false){
+		$exp = explode(" ", $str);
+		if(count($exp) < 2 && count($exp) > 3)
+			return false;
+		$resp = ["x"=>intval($exp[0]),"y"=>intval($exp[1])];
+		return count($exp)==3 ? array_merge($resp,["f"=>$exp[2]]) : $resp;
+	}
+	function turn($facing,$direction){
+		global $cardinals;
+		$currentIndex = array_search($facing, $cardinals);
+		$newIndex = $direction=='L' ? $currentIndex-1 : $currentIndex+1;
+		$newIndex = $newIndex < 0 ? 3 : $newIndex;
+		$newIndex = $newIndex > 3 ? 0 : $newIndex;
+		return $cardinals[$newIndex];
+	}
+	if(isset($_POST['input'])){
+		$input = trim($_POST['input']);
+		$input = explode(PHP_EOL, $input);
+		$topLeft = array_shift($input);
+		$topLeft = coordinates($topLeft);
+		if(!$topLeft)
+			die("Invalid top left coordinates.");
+
+		$i = 0;
+		$Rovers = [];
+		while(count($input)){ // While there is input...
+			$pos = array_shift($input);
+			$Position = coordinates($pos);
+			if(!$Position)
+				die("Invalid rover position"); // If rover position is wrong
+			if(!count($input))
+				die("No more instructions."); // If there aren't instructons for this rover
+			$ins = array_shift($input);
+			$Instructions = str_split($ins);
+			foreach($Instructions as $singleInstruction){
+				if($singleInstruction=='M'){
+					switch($Position['f']){
+						case "N":$Position['y']++;break;
+						case "E":$Position['x']++;break;
+						case "S":$Position['y']--;break;
+						case "W":$Position['x']--;break;
+					}
+					$pair = ['x','y'];
+					foreach($pair as $singlePair){
+						if($Position[$singlePair] > $topLeft[$singlePair]) // if X or Y goes greater than limits (Top left)
+							$Position[$singlePair] = 0;              // then => Reset to initial (Bottom left), went around the planet
+						elseif($Position[$singlePair] < 0)           // if X or Y goes less than initial (Bottom left)
+							$Position[$singlePair] = $topLeft[$singlePair];// then => Goes to limits (Top, left), went around the planet
+					}
+				}
+				elseif(in_array($singleInstruction, ['L','R'])){
+					$Position['f'] = turn($Position['f'],$singleInstruction);
+				}
+			}
+			$Rovers[] = $Position;
+		}
+	}
+	echo "<h3>Final output</h3>";
+	foreach($Rovers as $singleRover)
+		echo implode(" ", $singleRover)."<br>";
+?>
+
+<form method="POST">
+	<textarea name="input"></textarea>
+	<input type="submit" />
+</form>
